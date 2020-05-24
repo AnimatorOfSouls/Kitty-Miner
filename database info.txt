@@ -1,0 +1,11 @@
+-- Cards --
+id (int)
+name (str)
+category (str) -- Restricted [Blocks, Items, Resources]
+
+
+-- Profiles --
+id (int)
+username (str)
+stone (int)
+wood (int)
