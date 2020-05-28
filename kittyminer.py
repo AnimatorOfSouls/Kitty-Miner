@@ -17,15 +17,13 @@ bot = Bot(command_prefix=".mc ")
 #For bot owner use only!!! Make fresh database if not already existing
 def make_db():
     #Connecting to database
-    conn = sqlite3.connect("MineCards.db")
+    conn = sqlite3.connect("KittyMiner.db")
 
     #Creating the tables
-    conn.execute("CREATE TABLE IF NOT EXISTS Cards(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name VARCHAR(20),category VARCHAR(10))")
-    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,username VARCHAR(40),stone INT, wood INT)")
+    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,username VARCHAR(40),purplecat INT, bluecat INT)")
 
     #Closing the connection
     conn.close()
-
 
 
 #Allows user to claim a card
