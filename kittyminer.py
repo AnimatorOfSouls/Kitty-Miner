@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import sqlite3
 import random
 #-----------------------------MAIN------------------------------#
-bot = Bot(command_prefix=".mc ")
+bot = Bot(command_prefix=".cat ")
 
 
 
@@ -28,7 +28,7 @@ def make_db():
 
 #Allows user to claim a card
 @bot.command(pass_context=True)
-async def claim(ctx):
+async def mine(ctx):
     #Picking the rarity based on the weights
     rarities = ["white","blue","green","orange","red","pink","purple"]
     weights = [0.5,0.3,0.1,0.05,0.03,0.01,0.005]
@@ -39,7 +39,7 @@ async def claim(ctx):
     #Choosing a card in the chosen rarity tier.
     if rarity[0] == "white":
         print("white")
-        rand_type = random.choice(["wood","stone"])
+        rand_type = random.choice(["purplecat","bluecat"])
         type = rand_type
 
         added_amount = random.randint(5,10)
@@ -61,7 +61,7 @@ async def claim(ctx):
 
     ## Database stuff
     #Connecting to database and creating a cursor to navigate the database
-    conn = sqlite3.connect("MineCards.db")
+    conn = sqlite3.connect("KittyMiner.db")
     cursor = conn.cursor()
 
     #Finding the amount of cards in the player's inventory
@@ -105,8 +105,8 @@ async def claim(ctx):
 
 
     ##Embed display
-    embed = discord.Embed(title="You picked up a new card!", color=0x00fff0)
-    embed.add_field(name="Card:", value=card, inline=False)
+    embed = discord.Embed(title="You picked up a new cat!", color=0x00fff0)
+    embed.add_field(name="Cat:", value=card, inline=False)
     embed.add_field(name="Total:", value=new_amount, inline=False)
     await ctx.message.channel.send(embed=embed)
 
@@ -125,7 +125,7 @@ async def tiers(ctx):
 @bot.command(pass_context=True)
 async def newprofile(ctx):
     #Connecting to database and creating a cursor to navigate the database
-    conn = sqlite3.connect("MineCards.db")
+    conn = sqlite3.connect("KittyMiner.db")
     cursor = conn.cursor()
 
     #Check if username is already in the Profiles table
@@ -152,13 +152,13 @@ async def newprofile(ctx):
     #Creating a new profile if the username wasn't found
     if found == False:
         #sql INSERT, and values to be inserted
-        sql = "INSERT INTO Profiles (username,stone,wood) VALUES (?,?,?)"
+        sql = "INSERT INTO Profiles (username,purplecat,bluecat) VALUES (?,?,?)"
 
 
         values = [str(ctx.message.author),0,0]
 
         #Connecting to database and creating a cursor to navigate the database
-        conn = sqlite3.connect("MineCards.db")
+        conn = sqlite3.connect("KittyMiner.db")
         cursor = conn.cursor()
 
         cursor.execute(sql,values) #Inserting the data
@@ -168,7 +168,7 @@ async def newprofile(ctx):
         cursor.close()
         conn.close()
 
-        await ctx.message.channel.send("New profile created. To view your profile, do .minecards profile")
+        await ctx.message.channel.send("New profile created. To view your profile, do .cat profile")
 
 
     #Do nothing if username was found
@@ -181,11 +181,11 @@ async def newprofile(ctx):
 @bot.command(pass_context=True)
 async def inventory(ctx):
     #Connecting to database and creating a cursor to navigate the database
-    conn = sqlite3.connect("MineCards.db")
+    conn = sqlite3.connect("KittyMiner.db")
     cursor = conn.cursor()
 
     #Check if username is already in the Profiles table
-    cursor.execute("SELECT wood,stone FROM Profiles WHERE username = '" + str(ctx.message.author) + "'")
+    cursor.execute("SELECT purplecat,bluecat FROM Profiles WHERE username = '" + str(ctx.message.author) + "'")
 
     result = cursor.fetchall()
 
@@ -200,13 +200,13 @@ async def inventory(ctx):
 
 
     #Creating embed
-    wood = inv[0][0]
-    stone = inv[0][1]
+    purplecat = inv[0][0]
+    bluecat = inv[0][1]
 
     embed = discord.Embed(title="Inventory:", color=0x7C8ED0)
     embed.add_field(name="Username:", value=ctx.message.author, inline=False)
-    embed.add_field(name="Wood:", value=wood, inline=False)
-    embed.add_field(name="Stone:", value=stone, inline=False)
+    embed.add_field(name="<:purplecat:715641553166663700> Purple Cats:", value=purplecat, inline=False)
+    embed.add_field(name="<:bluecat:715644376268800030> Blue Cats:", value=bluecat, inline=False)
 
 
     await ctx.message.channel.send(embed=embed)
