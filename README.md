@@ -1,2 +1,2 @@
-# MineCards
-Discord bot about collecting Minecraft related cards.
+# Kitty Miner
+Discord bot about "mining" cats.

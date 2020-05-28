@@ -31,45 +31,66 @@ def make_db():
 #Allows user to claim a card
 @bot.command(pass_context=True)
 async def claim(ctx):
-    #Rarotoes = Common, Uncommon, Rare,
+    #Picking the rarity based on the weights
     rarities = ["white","blue","green","orange","red","pink","purple"]
-    weight = [0.5,0.3,0.1,0.05,0.03,0.01,0.005]
-    test = random.choices(rarities, weight, k=1)
-    print(test)
-
-    #Choosing the item + tier
-    rand_card = random.randint(1,2)
-
-    #Number of the item to give (more items for more common rarities)
-    common = random.randint(5,10)
-    uncommon = random.randint(3,7)
-
-    if rand_card == 1:
-        type = "stone"
-        rarity = "c"
-    elif rand_card == 2:
-        type = "wood"
-        rarity = "c"
+    weights = [0.5,0.3,0.1,0.05,0.03,0.01,0.005]
+    rarity = random.choices(rarities, weights, k=1)
 
 
 
+    #Choosing a card in the chosen rarity tier.
+    if rarity[0] == "white":
+        print("white")
+        rand_type = random.choice(["wood","stone"])
+        type = rand_type
+
+        added_amount = random.randint(5,10)
+
+    elif rarity[0] == "blue":
+        print("blue")
+    elif rarity[0] == "green":
+        print("green")
+    elif rarity[0] == "orange":
+        print("orange")
+    elif rarity[0] == "red":
+        print("red")
+    elif rarity[0] == "pink":
+        print("pink")
+    elif rarity[0] == "purple":
+        print("purple")
+
+
+
+    ## Database stuff
     #Connecting to database and creating a cursor to navigate the database
     conn = sqlite3.connect("MineCards.db")
     cursor = conn.cursor()
 
     #Finding the amount of cards in the player's inventory
-    print(type)
     cursor.execute("SELECT "+type+" FROM Profiles WHERE Username = '" + str(ctx.message.author) + "'")
     result = cursor.fetchall()
 
-    amount = result[0][0]
+    old_amount = result[0][0]
 
-    if rarity == "c":
-        new_amount = amount + common
-        card = str(common) + "x " + type
-    elif rarity == "u":
-        new_amount = amount + uncommon
-        card = str(uncommon) + "x " + type
+
+
+    #Calculating the new total of the type of card
+    if rarity[0] == "white":
+        new_amount = old_amount + added_amount
+        card = str(added_amount) + "x " + type
+    elif rarity[0] == "blue":
+        print("blue")
+    elif rarity[0] == "green":
+        print("green")
+    elif rarity[0] == "orange":
+        print("orange")
+    elif rarity[0] == "red":
+        print("red")
+    elif rarity[0] == "pink":
+        print("pink")
+    elif rarity[0] == "purple":
+        print("purple")
+
 
 
     #Updating values
@@ -85,6 +106,7 @@ async def claim(ctx):
 
 
 
+    ##Embed display
     embed = discord.Embed(title="You picked up a new card!", color=0x00fff0)
     embed.add_field(name="Card:", value=card, inline=False)
     embed.add_field(name="Total:", value=new_amount, inline=False)
