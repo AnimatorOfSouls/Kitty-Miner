@@ -2,6 +2,7 @@ import discord
 from discord import Embed, Emoji
 from discord.ext.commands import Bot
 from discord.utils import get
+from discord.ext import commands
 
 import os
 import dotenv
@@ -12,6 +13,8 @@ import random
 #-----------------------------MAIN------------------------------#
 bot = Bot(command_prefix=".cat ")
 
+bot.remove_command("help")
+
 
 
 #For bot owner use only!!! Make fresh database if not already existing
@@ -20,14 +23,16 @@ def make_db():
     conn = sqlite3.connect("KittyMiner.db")
 
     #Creating the tables
-    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,username VARCHAR(40),purplecat INT, bluecat INT)")
+    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,username VARCHAR(40),whitecat INT, bluecat INT, greencat INT, orangecat INT, redcat INT, pinkcat INT, purplecat INT)")
 
     #Closing the connection
     conn.close()
 
 
+
 #Allows user to claim a card
-@bot.command(pass_context=True)
+@bot.command(pass_context=True,aliases=["m"])
+@commands.cooldown(1, 15, commands.BucketType.user)
 async def mine(ctx):
     #Picking the rarity based on the weights
     rarities = ["white","blue","green","orange","red","pink","purple"]
@@ -38,24 +43,46 @@ async def mine(ctx):
 
     #Choosing a card in the chosen rarity tier.
     if rarity[0] == "white":
-        print("white")
-        rand_type = random.choice(["purplecat","bluecat"])
-        type = rand_type
+        '''
+        This is the code to use if there is more than 1 cat in a rarity
 
-        added_amount = random.randint(5,10)
+        rand_type = random.choice(["cat1","cat2"])
+        type = rand_type
+        '''
+
+        type = "whitecat"
+        emoji = "<:whitecat:715949337007489096>"
+        added_amount = random.randint(6,8)
 
     elif rarity[0] == "blue":
-        print("blue")
+        type = "bluecat"
+        emoji = "<:bluecat:715949337208684585>"
+        added_amount = random.randint(5,8)
+
     elif rarity[0] == "green":
-        print("green")
+        type = "greencat"
+        emoji = "<:greencat:715949337196101634>"
+        added_amount = random.randint(4,7)
+
     elif rarity[0] == "orange":
-        print("orange")
+        type = "orangecat"
+        emoji = "<:orangecat:715949337338708090>"
+        added_amount = random.randint(3,6)
+
     elif rarity[0] == "red":
-        print("red")
+        type = "redcat"
+        emoji = "<:redcat:715949337393233980>"
+        added_amount = random.randint(3,5)
+
     elif rarity[0] == "pink":
-        print("pink")
+        type = "pinkcat"
+        emoji = "<:pinkcat:715949337607274497>"
+        added_amount = random.randint(3,4)
+
     elif rarity[0] == "purple":
-        print("purple")
+        type = "purplecat"
+        emoji = "<:purplecat:715949337208815627>"
+        added_amount = random.randint(2,4)
 
 
 
@@ -73,21 +100,8 @@ async def mine(ctx):
 
 
     #Calculating the new total of the type of card
-    if rarity[0] == "white":
-        new_amount = old_amount + added_amount
-        card = str(added_amount) + "x " + type
-    elif rarity[0] == "blue":
-        print("blue")
-    elif rarity[0] == "green":
-        print("green")
-    elif rarity[0] == "orange":
-        print("orange")
-    elif rarity[0] == "red":
-        print("red")
-    elif rarity[0] == "pink":
-        print("pink")
-    elif rarity[0] == "purple":
-        print("purple")
+    new_amount = old_amount + added_amount
+    card = str(added_amount) + "x " + emoji + type
 
 
 
@@ -112,10 +126,17 @@ async def mine(ctx):
 
 
 
+#mine cooldown handler
+@mine.error
+async def info_error(ctx,error):
+    await ctx.message.channel.send("Miner on cooldown, please wait "+ str(round(error.retry_after,1)) +" seconds.")
+
+
+
 #Displays different tiers of cards in order of most common to least common
 @bot.command(pass_context=True)
 async def tiers(ctx):
-    embed = discord.Embed(title="Card Tiers:", color=0x00fff0)
+    embed = discord.Embed(title="Cat Tiers:", color=0x00fff0)
     embed.add_field(name="Most Common -> Least Common", value="<:white:715571455370199101> White\n<:blue:715573192185610341> Blue\n<:green:715573216130629682> Green\n<:orange:715573223965851668> Orange\n<:red:715573238004056084> Red\n<:pink:715573244916400279> Pink\n<:purple:715573253808062555> Purple", inline=False)
     await ctx.message.channel.send(embed=embed)
 
@@ -152,10 +173,10 @@ async def newprofile(ctx):
     #Creating a new profile if the username wasn't found
     if found == False:
         #sql INSERT, and values to be inserted
-        sql = "INSERT INTO Profiles (username,purplecat,bluecat) VALUES (?,?,?)"
+        sql = "INSERT INTO Profiles (username,whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat) VALUES (?,?,?,?,?,?,?,?)"
 
 
-        values = [str(ctx.message.author),0,0]
+        values = [str(ctx.message.author),0,0,0,0,0,0,0]
 
         #Connecting to database and creating a cursor to navigate the database
         conn = sqlite3.connect("KittyMiner.db")
@@ -178,14 +199,14 @@ async def newprofile(ctx):
 
 
 #Shows the user's inventory
-@bot.command(pass_context=True)
+@bot.command(pass_context=True,aliases=["inv"])
 async def inventory(ctx):
     #Connecting to database and creating a cursor to navigate the database
     conn = sqlite3.connect("KittyMiner.db")
     cursor = conn.cursor()
 
     #Check if username is already in the Profiles table
-    cursor.execute("SELECT purplecat,bluecat FROM Profiles WHERE username = '" + str(ctx.message.author) + "'")
+    cursor.execute("SELECT whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat FROM Profiles WHERE username = '" + str(ctx.message.author) + "'")
 
     result = cursor.fetchall()
 
@@ -200,21 +221,16 @@ async def inventory(ctx):
 
 
     #Creating embed
-    purplecat = inv[0][0]
-    bluecat = inv[0][1]
-
     embed = discord.Embed(title="Inventory:", color=0x7C8ED0)
     embed.add_field(name="Username:", value=ctx.message.author, inline=False)
-    embed.add_field(name="<:purplecat:715641553166663700> Purple Cats:", value=purplecat, inline=False)
-    embed.add_field(name="<:bluecat:715644376268800030> Blue Cats:", value=bluecat, inline=False)
-
+    embed.add_field(name="Cats:", value="<:whitecat:715949337007489096> White Cats: " + str(inv[0][0]) + "\n<:bluecat:715949337208684585> Blue Cats: " + str(inv[0][1]) + "\n<:greencat:715949337196101634> Green Cats: " + str(inv[0][2]) + "\n<:orangecat:715949337338708090> Orange Cats: " + str(inv[0][3]) + "\n<:redcat:715949337393233980> Red Cats: " + str(inv[0][4]) + "\n<:pinkcat:715949337607274497> Pink Cats: " + str(inv[0][5]) + "\n<:purplecat:715949337208815627> Purple Cats: "+ str(inv[0][6]), inline=False)
 
     await ctx.message.channel.send(embed=embed)
 
 
 
 #Shows the user's profile
-@bot.command(pass_context=True)
+@bot.command(pass_context=True,aliases=["p"])
 async def profile(ctx):
     embed = discord.Embed(title="Profile:", color=0x7C8ED0)
     embed.set_thumbnail(url=ctx.message.author.avatar_url)
@@ -222,6 +238,16 @@ async def profile(ctx):
 
     await ctx.message.channel.send(embed=embed)
 
+
+
+#Shows commands
+@bot.command(pass_context=True)
+async def help(ctx):
+    embed = discord.Embed(title="Commands:", color=0x7C8ED0)
+    embed.add_field(name="Info:", value="newprofile\nprofile (p)\ntiers", inline=False)
+    embed.add_field(name="Game:", value="mine (m)\ninventory (inv)", inline=False)
+
+    await ctx.message.channel.send(embed=embed)
 
 
 
