@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import sqlite3
 import random
 #-----------------------------MAIN------------------------------#
-bot = Bot(command_prefix=".cat ")
+bot = Bot(command_prefix="cat ")
 
 bot.remove_command("help")
 
@@ -23,7 +23,7 @@ def make_db():
     conn = sqlite3.connect("KittyMiner.db")
 
     #Creating the tables
-    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,username VARCHAR(40),whitecat INT, bluecat INT, greencat INT, orangecat INT, redcat INT, pinkcat INT, purplecat INT)")
+    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,userid VARCHAR(40),whitecat INT, bluecat INT, greencat INT, orangecat INT, redcat INT, pinkcat INT, purplecat INT)")
 
     #Closing the connection
     conn.close()
@@ -32,7 +32,7 @@ def make_db():
 
 #Allows user to claim a card
 @bot.command(pass_context=True,aliases=["m"])
-@commands.cooldown(1, 15, commands.BucketType.user)
+@commands.cooldown(1, 10, commands.BucketType.user)
 async def mine(ctx):
     #Picking the rarity based on the weights
     rarities = ["white","blue","green","orange","red","pink","purple"]
@@ -92,7 +92,7 @@ async def mine(ctx):
     cursor = conn.cursor()
 
     #Finding the amount of cards in the player's inventory
-    cursor.execute("SELECT "+type+" FROM Profiles WHERE Username = '" + str(ctx.message.author) + "'")
+    cursor.execute("SELECT "+type+" FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
     result = cursor.fetchall()
 
     old_amount = result[0][0]
@@ -106,7 +106,7 @@ async def mine(ctx):
 
 
     #Updating values
-    sql = "UPDATE Profiles SET " + type + " = " + str(new_amount) + " WHERE username = '" + str(ctx.message.author) + "'"
+    sql = "UPDATE Profiles SET " + type + " = " + str(new_amount) + " WHERE userid = '" + str(ctx.message.author.id) + "'"
 
     cursor.execute(sql)     #Updating
     conn.commit()           #Saving the entry
@@ -150,7 +150,7 @@ async def newprofile(ctx):
     cursor = conn.cursor()
 
     #Check if username is already in the Profiles table
-    cursor.execute("SELECT Username FROM Profiles WHERE Username = '" + str(ctx.message.author) + "'")
+    cursor.execute("SELECT userid FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
 
     result = cursor.fetchall()
 
@@ -173,10 +173,10 @@ async def newprofile(ctx):
     #Creating a new profile if the username wasn't found
     if found == False:
         #sql INSERT, and values to be inserted
-        sql = "INSERT INTO Profiles (username,whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat) VALUES (?,?,?,?,?,?,?,?)"
+        sql = "INSERT INTO Profiles (userid,whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat) VALUES (?,?,?,?,?,?,?,?)"
 
 
-        values = [str(ctx.message.author),0,0,0,0,0,0,0]
+        values = [str(ctx.message.author.id),0,0,0,0,0,0,0]
 
         #Connecting to database and creating a cursor to navigate the database
         conn = sqlite3.connect("KittyMiner.db")
@@ -189,7 +189,7 @@ async def newprofile(ctx):
         cursor.close()
         conn.close()
 
-        await ctx.message.channel.send("New profile created. To view your profile, do .cat profile")
+        await ctx.message.channel.send("New profile created. To view your profile, do 'cat profile'. To see a list of commands, do 'cat help'.")
 
 
     #Do nothing if username was found
@@ -205,8 +205,8 @@ async def inventory(ctx):
     conn = sqlite3.connect("KittyMiner.db")
     cursor = conn.cursor()
 
-    #Check if username is already in the Profiles table
-    cursor.execute("SELECT whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat FROM Profiles WHERE username = '" + str(ctx.message.author) + "'")
+    #Selecting all cat types from table
+    cursor.execute("SELECT whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
 
     result = cursor.fetchall()
 
@@ -240,14 +240,225 @@ async def profile(ctx):
 
 
 
+#profile error handler
+@profile.error
+async def info_error(ctx,error):
+    await ctx.message.channel.send("Welcome to Kitty Miner! To get started, type 'cat newprofile'. To see a list of commands, type 'cat help'.")
+
+
+
 #Shows commands
 @bot.command(pass_context=True)
 async def help(ctx):
     embed = discord.Embed(title="Commands:", color=0x7C8ED0)
     embed.add_field(name="Info:", value="newprofile\nprofile (p)\ntiers", inline=False)
-    embed.add_field(name="Game:", value="mine (m)\ninventory (inv)", inline=False)
+    embed.add_field(name="Game:", value="mine (m)\ninventory (inv)\nrecipes\ncraft\ntrade", inline=False)
 
     await ctx.message.channel.send(embed=embed)
+
+
+
+#Shows crafting recipe
+@bot.command(pass_context=True)
+async def recipes(ctx):
+    embed = discord.Embed(title="Recipes:", color=0x7C8ED0)
+    embed.add_field(name="Cats:", value="[blue] 3 whitecat -> 1 bluecat\n[green] 3 bluecat -> 1 greencat\n[orange] 3 greencat -> 1 orangecat\n[red] 2 orangecat -> 1 redcat\n[pink] 2 redcat -> 1 pinkcat\n[purple] 2 pinkcat -> 1 purplecat", inline=False)
+
+    await ctx.message.channel.send(embed=embed)
+
+
+
+#Crafting cats
+@bot.command(pass_context=True)
+async def craft(ctx, recipe):
+    recipe = recipe.lower()
+
+
+
+    #Connecting to database and creating a cursor to navigate the database
+    conn = sqlite3.connect("KittyMiner.db")
+    cursor = conn.cursor()
+
+    #Check if username is already in the Profiles table
+    cursor.execute("SELECT whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
+
+    result = cursor.fetchall()
+
+    inv = []
+
+    for row in result:
+        inv.append(row)
+
+
+
+    if recipe == "blue":
+        component = "whitecat"
+        crafted = "bluecat"
+        num_needed = 3
+    elif recipe == "green":
+        component = "bluecat"
+        crafted = "greencat"
+        num_needed = 3
+    elif recipe == "orange":
+        component = "greencat"
+        crafted = "orangecat"
+        num_needed = 3
+    elif recipe == "red":
+        component = "orangecat"
+        crafted = "redcat"
+        num_needed = 2
+    elif recipe == "pink":
+        component = "redcat"
+        crafted = "pinkcat"
+        num_needed = 2
+    elif recipe == "purple":
+        component = "pinkcat"
+        crafted = "purplecat"
+        num_needed = 2
+    else:
+        await ctx.message.channel.send("What are you trying to craft? (cat craft recipeID)")
+
+
+
+    #Connecting to database and creating a cursor to navigate the database
+    conn = sqlite3.connect("KittyMiner.db")
+    cursor = conn.cursor()
+
+    #Check if username is already in the Profiles table
+    cursor.execute("SELECT " + component + "," + crafted + " FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
+
+    result = cursor.fetchall()
+
+    inv = []
+
+    for row in result:
+        inv.append(row)
+
+
+    cont = True
+    #checking if the user has enough of the components
+    if inv[0][0] < num_needed:
+        await ctx.message.channel.send("You dont have enough " + component + "s!")
+        cont = False
+    else:
+        component_final = inv[0][0]-num_needed
+        crafted_final = inv[0][1]+1
+
+
+
+    if cont == True:
+        sql = "UPDATE Profiles SET " + component + " = " + str(component_final) + "," + crafted + " = " + str(crafted_final) + " WHERE userid = '" + str(ctx.message.author.id) + "'"
+
+        cursor.execute(sql)     #Updating
+        conn.commit()           #Saving the entry
+
+
+        embed = discord.Embed(title="You successfully crafted an item!", color=0x7C8ED0)
+        embed.add_field(name="Username:", value=ctx.message.author, inline=False)
+        embed.add_field(name="Crafted:", value= crafted + " x1", inline=False)
+
+        await ctx.message.channel.send(embed=embed)
+
+
+    #Closing the connections
+    cursor.close()
+    conn.close()
+
+
+
+#craft error handler
+@craft.error
+async def info_error(ctx,error):
+    await ctx.message.channel.send("What are you trying to craft? (cat craft recipeID)")
+
+
+
+#Trading cats between players
+@bot.command(pass_context=True)
+async def trade(ctx,player,tcat,amount):
+
+    #Connecting to database and creating a cursor to navigate the database
+    conn = sqlite3.connect("KittyMiner.db")
+    cursor = conn.cursor()
+
+    #Get how many of tcat the message author has
+    cursor.execute("SELECT " + tcat + " FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
+
+    result = cursor.fetchall()
+
+    giver_inv = []
+
+    for row in result:
+        giver_inv.append(row)
+
+
+    if int(giver_inv[0][0]) < int(amount):
+        print("test1")
+        await ctx.message.channel.send("You dont have enough to be able to trade.")
+    elif str(ctx.message.author.id) == str(player[3:-1]):
+        await ctx.message.channel.send("You can't trade with yourself!")
+    else:
+        #Get how many of tcat the reciever has
+        cursor.execute("SELECT " + tcat + " FROM Profiles WHERE userid = '" + str(player[3:-1]) + "'")
+
+        result = cursor.fetchall()
+
+        reciever_inv = []
+
+        for row in result:
+            reciever_inv.append(row)
+
+
+        #Calculating new totals
+        giv_new_total = int(giver_inv[0][0]) - int(amount)
+        rec_new_total = int(reciever_inv[0][0]) + int(amount)
+
+
+        giv_sql = "UPDATE Profiles SET " + tcat + " = " + str(giv_new_total) + " WHERE userid = '" + str(ctx.message.author) + "'"
+        rec_sql = "UPDATE Profiles SET " + tcat + " = " + str(rec_new_total) + " WHERE userid = '" + str(player[3:-1]) + "'"
+
+        cursor.execute(giv_sql)     #Updating
+        cursor.execute(rec_sql)
+        conn.commit()           #Saving the entry
+
+
+    #Closing the connections
+    cursor.close()
+    conn.close()
+
+
+    if tcat == "whitecat":
+        caturl = "https://cdn.discordapp.com/emojis/715949337007489096.png?v=1"
+    elif tcat == "bluecat":
+        caturl = "https://cdn.discordapp.com/emojis/715949337208684585.png?v=1"
+    elif tcat == "greencat":
+        caturl = "https://cdn.discordapp.com/emojis/715949337196101634.png?v=1"
+    elif tcat == "orangecat":
+        caturl = "https://cdn.discordapp.com/emojis/715949337338708090.png?v=1"
+    elif tcat == "redcat":
+        caturl = "https://cdn.discordapp.com/emojis/715949337393233980.png?v=1"
+    elif tcat == "pinkcat":
+        caturl = "https://cdn.discordapp.com/emojis/715949337607274497.png?v=1"
+    elif tcat == "purplecat":
+        caturl = "https://cdn.discordapp.com/emojis/715949337208815627.png?v=1"
+
+
+    #Making embed
+    embed = discord.Embed(title="Trade Successful!", color=0x7C8ED0)
+    embed.set_thumbnail(url=caturl)
+    embed.add_field(name="Kitty Giver:", value=ctx.message.author, inline=False)
+    embed.add_field(name="Kitty Traded:", value=tcat + " x" + str(amount), inline=False)
+
+    await ctx.message.channel.send(embed=embed)
+
+
+
+#trade error handler
+@trade.error
+async def info_error(ctx,error):
+    await ctx.message.channel.send("Invalid command. Do 'cat trade @username cattype amount'.\nMake sure the other person has a profile made (cat newprofile)")
+
+
 
 
 
