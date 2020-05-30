@@ -22,4 +22,4 @@ command (alternative names) - description
 - inventory (inv) - view inventory
 - recipes - view recipes and their recipe IDs
 - craft - craft an item, used in the format "cat craft recipeID" (e.g. cat craft blue)
-- trade - trade cats with another player
+- trade - trade cats with another player, used in the format "cat trade @username cattype amount" (e.g. cat trade @AnimatorOfSouls bluecat 2)
