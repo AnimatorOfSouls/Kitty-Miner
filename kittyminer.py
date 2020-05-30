@@ -414,7 +414,7 @@ async def trade(ctx,player,tcat,amount):
         rec_new_total = int(reciever_inv[0][0]) + int(amount)
 
 
-        giv_sql = "UPDATE Profiles SET " + tcat + " = " + str(giv_new_total) + " WHERE userid = '" + str(ctx.message.author) + "'"
+        giv_sql = "UPDATE Profiles SET " + tcat + " = " + str(giv_new_total) + " WHERE userid = '" + str(ctx.message.author.id) + "'"
         rec_sql = "UPDATE Profiles SET " + tcat + " = " + str(rec_new_total) + " WHERE userid = '" + str(player[3:-1]) + "'"
 
         cursor.execute(giv_sql)     #Updating
@@ -427,6 +427,7 @@ async def trade(ctx,player,tcat,amount):
     conn.close()
 
 
+    #Setting the url for the cat image
     if tcat == "whitecat":
         caturl = "https://cdn.discordapp.com/emojis/715949337007489096.png?v=1"
     elif tcat == "bluecat":
