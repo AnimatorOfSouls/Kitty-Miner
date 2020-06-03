@@ -15,6 +15,28 @@ bot = Bot(command_prefix="cat ")
 
 bot.remove_command("help")
 
+#Dict of all the cat emojis
+cat_emoji = {
+            "whitecat":"<:whitecat:715949337007489096>",
+            "bluecat":"<:bluecat:715949337208684585>",
+            "greencat":"<:greencat:715949337196101634>",
+            "orangecat":"<:orangecat:715949337338708090>",
+            "redcat":"<:redcat:715949337393233980>",
+            "pinkcat":"<:pinkcat:715949337607274497>",
+            "purplecat":"<:purplecat:715949337208815627>",
+            }
+
+#Dict of cat exp values
+cat_exp = {
+            "whitecat":2,
+            "bluecat":4,
+            "greencat":8,
+            "orangecat":16,
+            "redcat":32,
+            "pinkcat":64,
+            "purplecat":128,
+            }
+
 
 
 #For bot owner use only!!! Make fresh database if not already existing
@@ -23,7 +45,7 @@ def make_db():
     conn = sqlite3.connect("KittyMiner.db")
 
     #Creating the tables
-    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,userid VARCHAR(40),whitecat INT, bluecat INT, greencat INT, orangecat INT, redcat INT, pinkcat INT, purplecat INT)")
+    conn.execute("CREATE TABLE IF NOT EXISTS Profiles(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,userid VARCHAR(40),level INT,exp REAL,whitecat INT, bluecat INT, greencat INT, orangecat INT, redcat INT, pinkcat INT, purplecat INT)")
 
     #Closing the connection
     conn.close()
@@ -32,7 +54,7 @@ def make_db():
 
 #Allows user to claim a card
 @bot.command(pass_context=True,aliases=["m"])
-@commands.cooldown(1, 10, commands.BucketType.user)
+@commands.cooldown(1, 5, commands.BucketType.user)
 async def mine(ctx):
     #Picking the rarity based on the weights
     rarities = ["white","blue","green","orange","red","pink","purple"]
@@ -51,39 +73,31 @@ async def mine(ctx):
         '''
 
         type = "whitecat"
-        emoji = "<:whitecat:715949337007489096>"
         added_amount = random.randint(6,8)
 
     elif rarity[0] == "blue":
         type = "bluecat"
-        emoji = "<:bluecat:715949337208684585>"
         added_amount = random.randint(5,8)
 
     elif rarity[0] == "green":
         type = "greencat"
-        emoji = "<:greencat:715949337196101634>"
         added_amount = random.randint(4,7)
 
     elif rarity[0] == "orange":
         type = "orangecat"
-        emoji = "<:orangecat:715949337338708090>"
         added_amount = random.randint(3,6)
 
     elif rarity[0] == "red":
         type = "redcat"
-        emoji = "<:redcat:715949337393233980>"
         added_amount = random.randint(3,5)
 
     elif rarity[0] == "pink":
         type = "pinkcat"
-        emoji = "<:pinkcat:715949337607274497>"
         added_amount = random.randint(3,4)
 
     elif rarity[0] == "purple":
         type = "purplecat"
-        emoji = "<:purplecat:715949337208815627>"
         added_amount = random.randint(2,4)
-
 
 
     ## Database stuff
@@ -92,25 +106,41 @@ async def mine(ctx):
     cursor = conn.cursor()
 
     #Finding the amount of cards in the player's inventory
-    cursor.execute("SELECT "+type+" FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
+    cursor.execute("SELECT "+type+",exp FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
     result = cursor.fetchall()
 
     old_amount = result[0][0]
-
-
+    old_exp = result[0][1]
 
     #Calculating the new total of the type of card
     new_amount = old_amount + added_amount
-    card = str(added_amount) + "x " + emoji + type
+    new_exp = old_exp + cat_exp[type]
 
+    levelup = False
+    if new_exp >= 100:
+        #Finding the amount of levels
+        cursor.execute("SELECT level FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
+        result_level = cursor.fetchall()
+        new_level = result_level[0][0] + 1
+
+        sql = "UPDATE Profiles SET level = "+str(new_level)+" WHERE userid = '" + str(ctx.message.author.id) + "'"
+        cursor.execute(sql)     #Updating
+        conn.commit()           #Saving the entry
+
+        new_exp -= 100
+        levelup = True
+
+
+
+
+    card = str(added_amount) + "x " + cat_emoji[type] + type + " (+"+str(cat_exp[type])+" exp)"
 
 
     #Updating values
-    sql = "UPDATE Profiles SET " + type + " = " + str(new_amount) + " WHERE userid = '" + str(ctx.message.author.id) + "'"
+    sql = "UPDATE Profiles SET " + type + " = " + str(new_amount) + ", exp = "+str(new_exp)+" WHERE userid = '" + str(ctx.message.author.id) + "'"
 
     cursor.execute(sql)     #Updating
     conn.commit()           #Saving the entry
-
 
     #Closing the connections
     cursor.close()
@@ -123,6 +153,12 @@ async def mine(ctx):
     embed.add_field(name="Cat:", value=card, inline=False)
     embed.add_field(name="Total:", value=new_amount, inline=False)
     await ctx.message.channel.send(embed=embed)
+
+    if levelup == True:
+        ##Embed display
+        embed = discord.Embed(title="Level Up!", color=0x00fff0)
+        embed.add_field(name="Level: ", value=new_level, inline=False)
+        await ctx.message.channel.send(embed=embed)
 
 
 
@@ -173,10 +209,10 @@ async def newprofile(ctx):
     #Creating a new profile if the username wasn't found
     if found == False:
         #sql INSERT, and values to be inserted
-        sql = "INSERT INTO Profiles (userid,whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat) VALUES (?,?,?,?,?,?,?,?)"
+        sql = "INSERT INTO Profiles (userid,level,exp,whitecat,bluecat,greencat,orangecat,redcat,pinkcat,purplecat) VALUES (?,?,?,?,?,?,?,?,?,?)"
 
 
-        values = [str(ctx.message.author.id),0,0,0,0,0,0,0]
+        values = [str(ctx.message.author.id),1,0,0,0,0,0,0,0,0]
 
         #Connecting to database and creating a cursor to navigate the database
         conn = sqlite3.connect("KittyMiner.db")
@@ -223,7 +259,7 @@ async def inventory(ctx):
     #Creating embed
     embed = discord.Embed(title="Inventory:", color=0x7C8ED0)
     embed.add_field(name="Username:", value=ctx.message.author, inline=False)
-    embed.add_field(name="Cats:", value="<:whitecat:715949337007489096> White Cats: " + str(inv[0][0]) + "\n<:bluecat:715949337208684585> Blue Cats: " + str(inv[0][1]) + "\n<:greencat:715949337196101634> Green Cats: " + str(inv[0][2]) + "\n<:orangecat:715949337338708090> Orange Cats: " + str(inv[0][3]) + "\n<:redcat:715949337393233980> Red Cats: " + str(inv[0][4]) + "\n<:pinkcat:715949337607274497> Pink Cats: " + str(inv[0][5]) + "\n<:purplecat:715949337208815627> Purple Cats: "+ str(inv[0][6]), inline=False)
+    embed.add_field(name="Cats:", value=cat_emoji["whitecat"]+" White Cats: " + str(inv[0][0]) + "\n"+cat_emoji["bluecat"]+" Blue Cats: " + str(inv[0][1]) + "\n"+cat_emoji["greencat"]+"Green Cats: " + str(inv[0][2]) + "\n"+cat_emoji["orangecat"]+" Orange Cats: " + str(inv[0][3]) + "\n"+cat_emoji["redcat"]+" Red Cats: " + str(inv[0][4]) + "\n"+cat_emoji["pinkcat"]+" Pink Cats: " + str(inv[0][5]) + "\n"+cat_emoji["purplecat"]+" Purple Cats: "+ str(inv[0][6]), inline=False)
 
     await ctx.message.channel.send(embed=embed)
 
@@ -232,9 +268,31 @@ async def inventory(ctx):
 #Shows the user's profile
 @bot.command(pass_context=True,aliases=["p"])
 async def profile(ctx):
+    #Connecting to database and creating a cursor to navigate the database
+    conn = sqlite3.connect("KittyMiner.db")
+    cursor = conn.cursor()
+
+    #Selecting all cat types from table
+    cursor.execute("SELECT level,exp FROM Profiles WHERE userid = '" + str(ctx.message.author.id) + "'")
+
+    result = cursor.fetchall()
+
+    selected = []
+
+    for row in result:
+        selected.append(row)
+
+    #Closing the connections
+    cursor.close()
+    conn.close()
+
+
+
     embed = discord.Embed(title="Profile:", color=0x7C8ED0)
     embed.set_thumbnail(url=ctx.message.author.avatar_url)
     embed.add_field(name="Username:", value=ctx.message.author, inline=False)
+    embed.add_field(name="Level:", value=selected[0][0], inline=False)
+    embed.add_field(name="Exp:", value=selected[0][1], inline=False)
 
     await ctx.message.channel.send(embed=embed)
 
@@ -262,7 +320,7 @@ async def help(ctx):
 @bot.command(pass_context=True)
 async def recipes(ctx):
     embed = discord.Embed(title="Recipes:", color=0x7C8ED0)
-    embed.add_field(name="Cats:", value="[blue] 3 whitecat -> 1 bluecat\n[green] 3 bluecat -> 1 greencat\n[orange] 3 greencat -> 1 orangecat\n[red] 2 orangecat -> 1 redcat\n[pink] 2 redcat -> 1 pinkcat\n[purple] 2 pinkcat -> 1 purplecat", inline=False)
+    embed.add_field(name="Cats:", value="[blue] 5 whitecat -> 1 bluecat\n[green] 5 bluecat -> 1 greencat\n[orange] 5 greencat -> 1 orangecat\n[red] 4 orangecat -> 1 redcat\n[pink] 4 redcat -> 1 pinkcat\n[purple] 4 pinkcat -> 1 purplecat", inline=False)
 
     await ctx.message.channel.send(embed=embed)
 
@@ -294,27 +352,27 @@ async def craft(ctx, recipe):
     if recipe == "blue":
         component = "whitecat"
         crafted = "bluecat"
-        num_needed = 3
+        num_needed = 5
     elif recipe == "green":
         component = "bluecat"
         crafted = "greencat"
-        num_needed = 3
+        num_needed = 5
     elif recipe == "orange":
         component = "greencat"
         crafted = "orangecat"
-        num_needed = 3
+        num_needed = 5
     elif recipe == "red":
         component = "orangecat"
         crafted = "redcat"
-        num_needed = 2
+        num_needed = 4
     elif recipe == "pink":
         component = "redcat"
         crafted = "pinkcat"
-        num_needed = 2
+        num_needed = 4
     elif recipe == "purple":
         component = "pinkcat"
         crafted = "purplecat"
-        num_needed = 2
+        num_needed = 4
     else:
         await ctx.message.channel.send("What are you trying to craft? (cat craft recipeID)")
 
@@ -393,7 +451,6 @@ async def trade(ctx,player,tcat,amount):
 
 
     if int(giver_inv[0][0]) < int(amount):
-        print("test1")
         await ctx.message.channel.send("You dont have enough to be able to trade.")
     elif str(ctx.message.author.id) == str(player[3:-1]):
         await ctx.message.channel.send("You can't trade with yourself!")
@@ -422,35 +479,37 @@ async def trade(ctx,player,tcat,amount):
         conn.commit()           #Saving the entry
 
 
+
+        #Setting the url for the cat image
+        if tcat == "whitecat":
+            caturl = "https://cdn.discordapp.com/emojis/715949337007489096.png?v=1"
+        elif tcat == "bluecat":
+            caturl = "https://cdn.discordapp.com/emojis/715949337208684585.png?v=1"
+        elif tcat == "greencat":
+            caturl = "https://cdn.discordapp.com/emojis/715949337196101634.png?v=1"
+        elif tcat == "orangecat":
+            caturl = "https://cdn.discordapp.com/emojis/715949337338708090.png?v=1"
+        elif tcat == "redcat":
+            caturl = "https://cdn.discordapp.com/emojis/715949337393233980.png?v=1"
+        elif tcat == "pinkcat":
+            caturl = "https://cdn.discordapp.com/emojis/715949337607274497.png?v=1"
+        elif tcat == "purplecat":
+            caturl = "https://cdn.discordapp.com/emojis/715949337208815627.png?v=1"
+
+
+        #Making embed
+        embed = discord.Embed(title="Trade Successful!", color=0x7C8ED0)
+        embed.set_thumbnail(url=caturl)
+        embed.add_field(name="Kitty Giver:", value=ctx.message.author, inline=False)
+        embed.add_field(name="Kitty Traded:", value=tcat + " x" + str(amount), inline=False)
+
+        await ctx.message.channel.send(embed=embed)
+
+
+
     #Closing the connections
     cursor.close()
     conn.close()
-
-
-    #Setting the url for the cat image
-    if tcat == "whitecat":
-        caturl = "https://cdn.discordapp.com/emojis/715949337007489096.png?v=1"
-    elif tcat == "bluecat":
-        caturl = "https://cdn.discordapp.com/emojis/715949337208684585.png?v=1"
-    elif tcat == "greencat":
-        caturl = "https://cdn.discordapp.com/emojis/715949337196101634.png?v=1"
-    elif tcat == "orangecat":
-        caturl = "https://cdn.discordapp.com/emojis/715949337338708090.png?v=1"
-    elif tcat == "redcat":
-        caturl = "https://cdn.discordapp.com/emojis/715949337393233980.png?v=1"
-    elif tcat == "pinkcat":
-        caturl = "https://cdn.discordapp.com/emojis/715949337607274497.png?v=1"
-    elif tcat == "purplecat":
-        caturl = "https://cdn.discordapp.com/emojis/715949337208815627.png?v=1"
-
-
-    #Making embed
-    embed = discord.Embed(title="Trade Successful!", color=0x7C8ED0)
-    embed.set_thumbnail(url=caturl)
-    embed.add_field(name="Kitty Giver:", value=ctx.message.author, inline=False)
-    embed.add_field(name="Kitty Traded:", value=tcat + " x" + str(amount), inline=False)
-
-    await ctx.message.channel.send(embed=embed)
 
 
 
