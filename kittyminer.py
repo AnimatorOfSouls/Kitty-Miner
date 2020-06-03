@@ -309,7 +309,7 @@ async def info_error(ctx,error):
 @bot.command(pass_context=True)
 async def help(ctx):
     embed = discord.Embed(title="Commands:", color=0x7C8ED0)
-    embed.add_field(name="Info:", value="newprofile\nprofile (p)\ntiers", inline=False)
+    embed.add_field(name="Info:", value="newprofile\nprofile (p)\ntiers\nlinks", inline=False)
     embed.add_field(name="Game:", value="mine (m)\ninventory (inv)\nrecipes\ncraft\ntrade", inline=False)
 
     await ctx.message.channel.send(embed=embed)
@@ -519,6 +519,14 @@ async def info_error(ctx,error):
     await ctx.message.channel.send("Invalid command. Do 'cat trade @username cattype amount'.\nMake sure the other person has a profile made (cat newprofile)")
 
 
+
+#Shows links
+@bot.command(pass_context=True)
+async def links(ctx):
+    embed = discord.Embed(title="Links:", color=0x7C8ED0)
+    embed.add_field(name="General:", value="[Discord](Placeholder)\n[Bot Invite](Placeholder)\n[Website](Placeholder)\n[Github](Placeholder)\n[Trello](https://trello.com/b/6huVEyzz/kitty-miner)", inline=False)
+
+    await ctx.message.channel.send(embed=embed)
 
 
 
